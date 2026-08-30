@@ -1,0 +1,51 @@
+{
+  "keepers": {
+    "QB|Jaxson Dart": {
+      "mine": true,
+      "paid": 2.0
+    }
+  },
+  "projections": {},
+  "season": 2026,
+  "tags": {
+    "QB|Brock Purdy": "fade",
+    "QB|Cam Ward": "gem",
+    "QB|Daniel Jones": "gem",
+    "QB|Drake Maye": "fade",
+    "QB|Fernando Mendoza": "gem",
+    "QB|Jayden Daniels": "fade",
+    "QB|Jordan Love": "fade",
+    "QB|Justin Herbert": "gem",
+    "QB|Tyler Shough": "fade",
+    "RB|Bijan Robinson": "fade",
+    "RB|Breece Hall": "fade",
+    "RB|Chase Brown": "gem",
+    "RB|Christian McCaffrey": "fade",
+    "RB|De'Von Achane": "fade",
+    "RB|Jadarian Price": "gem",
+    "RB|Jonathan Taylor": "gem",
+    "RB|Jordan Mason": "gem",
+    "RB|Josh Jacobs": "fade",
+    "RB|Kyle Monangai": "gem",
+    "RB|Omarion Hampton": "gem",
+    "RB|Saquon Barkley": "gem",
+    "RB|Tony Pollard": "gem",
+    "TE|Brock Bowers": "gem",
+    "TE|Colston Loveland": "gem",
+    "TE|Dalton Kincaid": "gem",
+    "TE|Harold Fannin": "fade",
+    "TE|Isaiah Likely": "fade",
+    "TE|Sam LaPorta": "gem",
+    "WR|Antonio Williams": "gem",
+    "WR|Chris Bell": "gem",
+    "WR|Chris Godwin": "fade",
+    "WR|Elic Ayomanor": "gem",
+    "WR|Jayden Higgins": "gem",
+    "WR|Josh Downs": "gem",
+    "WR|KC Concepcion": "gem",
+    "WR|Michael Wilson": "gem",
+    "WR|Puka Nacua": "fade",
+    "WR|Xavier Worthy": "fade"
+  },
+  "updated": "2026-08-18T22:36:38+00:00"
+}

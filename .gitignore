@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Cached API responses — regenerate with: python3 build.py --refresh
+data/raw/
+
+# Generated board
+out/
+
+# Verification screenshots
+.playwright-mcp/
+board-*.png

@@ -1,0 +1,745 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Superflex Auction Board</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='13'>%F0%9F%8F%88</text></svg>">
+<style>
+  :root{
+    --bg:#0e1116; --panel:#161b22; --line:#272e38; --ink:#e6edf3;
+    --dim:#8b949e; --pos:#3fb950; --neg:#f85149; --accent:#58a6ff;
+    --qb:#f0883e; --rb:#3fb950; --wr:#58a6ff; --te:#bc8cff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:14px/1.45 ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif}
+  header{padding:14px 18px;border-bottom:1px solid var(--line);
+         display:flex;flex-wrap:wrap;gap:14px;align-items:baseline}
+  h1{font-size:16px;margin:0;letter-spacing:.2px}
+  .sub{color:var(--dim);font-size:12px}
+  .wrap{padding:14px 18px;max-width:1240px}
+  form.settings{background:var(--panel);border:1px solid var(--line);
+    border-radius:8px;padding:11px 13px;margin-bottom:13px;
+    display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
+  .fld{display:flex;flex-direction:column;gap:3px}
+  .fld label{font-size:10px;text-transform:uppercase;letter-spacing:.8px;
+    color:var(--dim);font-weight:600}
+  .fld input,.fld select{background:var(--bg);border:1px solid var(--line);
+    border-radius:5px;color:var(--ink);padding:5px 7px;font-size:13px;width:62px}
+  .fld.wide input,.fld.wide select{width:104px}
+  .fld input:focus,.fld select:focus{outline:none;border-color:var(--accent)}
+  .grp{display:flex;gap:7px;padding-left:14px;border-left:1px solid var(--line)}
+  .err{color:var(--neg);font-size:12px;width:100%}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+  button{background:var(--panel);color:var(--ink);border:1px solid var(--line);
+         border-radius:6px;padding:6px 12px;font-size:13px;cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  button.on{background:var(--accent);border-color:var(--accent);color:#0d1117;font-weight:650}
+  input[type=search]{background:var(--panel);border:1px solid var(--line);
+    border-radius:6px;color:var(--ink);padding:6px 10px;font-size:13px;min-width:190px}
+  label.chk{color:var(--dim);font-size:12px;display:flex;align-items:center;gap:5px;cursor:pointer}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:5px 9px;text-align:right;border-bottom:1px solid var(--line);
+        white-space:nowrap}
+  th{position:sticky;top:0;background:var(--bg);cursor:pointer;color:var(--dim);
+     font-size:11px;text-transform:uppercase;letter-spacing:.6px;user-select:none;
+     border-bottom:1px solid var(--line)}
+  th:hover{color:var(--ink)}
+  th.asc::after{content:" \2191";color:var(--accent)}
+  th.desc::after{content:" \2193";color:var(--accent)}
+  td.l,th.l{text-align:left}
+  tbody tr{cursor:pointer}
+  tbody tr:hover{background:#1b2028}
+  tr.sold{opacity:.32}
+  tr.sold td.l span.nm{text-decoration:line-through}
+  /* Tints stay faint so a sold gem still reads as sold first. */
+  tr.gem{background:rgba(63,185,80,.10)}
+  tr.fade{background:rgba(248,81,73,.10)}
+  tr.gem:hover{background:rgba(63,185,80,.19)}
+  tr.fade:hover{background:rgba(248,81,73,.19)}
+  /* The $1 tier recedes via colour, not row opacity — opacity is already
+     spoken for by .sold, and a filler you have marked sold must still
+     look different from one you have not. */
+  tr.filler td.l span.nm,tr.filler .val{color:var(--dim)}
+  tr.filler .val{font-weight:500}
+  /* Kept players are not for sale. They read as settled rather than
+     available: no hover lift, and the price shown is what it cost, not
+     what it is worth. Yours and theirs are separate colours because the
+     decision you make about each is different. */
+  tr.kept{background:rgba(88,166,255,.08)}
+  tr.kept.theirs{background:rgba(139,148,158,.09)}
+  tr.kept:hover{background:rgba(88,166,255,.14)}
+  tr.kept.theirs:hover{background:rgba(139,148,158,.15)}
+  tr.kept .val{color:var(--accent);font-weight:600}
+  tr.kept.theirs .val{color:var(--dim)}
+  .kepttag{font-size:9px;font-weight:700;letter-spacing:.4px;margin-left:6px;
+           padding:1px 4px;border-radius:3px;border:1px solid var(--accent);
+           color:var(--accent);white-space:nowrap}
+  tr.kept.theirs .kepttag{border-color:var(--line);color:var(--dim)}
+  .tagbtn.keep{font-size:9px;font-weight:700}
+  .tagbtn.keep.on{background:var(--accent);border-color:var(--accent);color:#0d1117}
+  .keeperbar.hot{color:var(--accent)}
+  .bait.warn{color:var(--neg)}
+  th.tagcol{width:56px}
+  td.tags{white-space:nowrap;padding-left:9px;padding-right:0}
+  .tagbtn{display:inline-block;width:19px;height:19px;line-height:17px;text-align:center;
+    border:1px solid var(--line);border-radius:4px;background:transparent;color:var(--dim);
+    font-size:11px;cursor:pointer;padding:0;margin-right:3px}
+  .tagbtn:hover{border-color:var(--accent);color:var(--ink)}
+  .tagbtn.on.gem{background:var(--pos);border-color:var(--pos);color:#0d1117;font-weight:700}
+  .tagbtn.on.fade{background:var(--neg);border-color:var(--neg);color:#0d1117;font-weight:700}
+  button.gemf.on{background:var(--pos);border-color:var(--pos);color:#0d1117}
+  button.fadef.on{background:var(--neg);border-color:var(--neg);color:#0d1117}
+  .bait{color:var(--dim);font-size:12px}
+  .tag{display:inline-block;min-width:34px;text-align:center;padding:1px 5px;
+       border-radius:4px;font-size:11px;font-weight:700;color:#0d1117}
+  .QB{background:var(--qb)} .RB{background:var(--rb)}
+  .WR{background:var(--wr)} .TE{background:var(--te)}
+  .val{font-weight:650}
+  td.pts{cursor:text}
+  td.pts:hover{background:#232a34;outline:1px solid var(--line)}
+  td.edited{color:var(--accent);font-weight:650}
+  td.pts input{background:var(--bg);border:1px solid var(--accent);border-radius:4px;
+    color:var(--ink);font:inherit;text-align:right;width:66px;padding:1px 4px}
+  input[type=range]{width:104px;accent-color:var(--accent);padding:0}
+  .up{color:var(--pos)} .down{color:var(--neg)}
+  .inj{color:var(--neg);font-size:10px;font-weight:700;margin-left:5px}
+  .solo{color:var(--dim);font-size:10px;font-weight:700;margin-left:5px;
+        border:1px solid var(--line);border-radius:3px;padding:0 3px}
+  .tier{color:var(--dim);font-size:11px}
+  .count{color:var(--dim);font-size:12px;margin-left:auto}
+  .busy{opacity:.5;transition:opacity .12s}
+</style>
+</head>
+<body>
+<header>
+  <h1>Superflex Auction Board</h1>
+  <span class="sub" id="lg"></span>
+  <span class="sub keeperbar" id="kb"></span>
+  <span class="count" id="ct"></span>
+</header>
+
+<div class="wrap">
+{% if server %}
+  <form class="settings" id="settings" onsubmit="return false">
+    <div class="fld"><label for="teams">Teams</label>
+      <input type="number" id="teams" name="teams" min="2" max="32" step="1"></div>
+    <div class="fld"><label for="budget">Budget</label>
+      <input type="number" id="budget" name="budget" min="10" max="10000" step="1"></div>
+    <div class="fld"><label for="spots">Spots</label>
+      <input type="number" id="spots" name="spots" min="1" max="60" step="1"></div>
+    <div class="fld wide"><label for="scoring">Scoring</label>
+      <select id="scoring" name="scoring">
+        <option value="pts_ppr">Full PPR</option>
+        <option value="pts_half_ppr">Half PPR</option>
+        <option value="pts_std">Standard</option>
+      </select></div>
+    <div class="grp">
+      <div class="fld"><label for="qb">QB</label>
+        <input type="number" id="qb" name="qb" min="0" max="10" step="1"></div>
+      <div class="fld"><label for="rb">RB</label>
+        <input type="number" id="rb" name="rb" min="0" max="10" step="1"></div>
+      <div class="fld"><label for="wr">WR</label>
+        <input type="number" id="wr" name="wr" min="0" max="10" step="1"></div>
+      <div class="fld"><label for="te">TE</label>
+        <input type="number" id="te" name="te" min="0" max="10" step="1"></div>
+      <div class="fld"><label for="flex">Flex</label>
+        <input type="number" id="flex" name="flex" min="0" max="10" step="1"></div>
+      <div class="fld"><label for="sf">Superflex</label>
+        <input type="number" id="sf" name="sf" min="0" max="5" step="1"></div>
+    </div>
+    <div class="fld wide"><label for="stick">
+        Anchor <span id="sticklabel"></span></label>
+      <input type="range" id="stick" name="stick" min="0" max="100" step="5"></div>
+    <button type="button" id="revert">reset to league</button>
+    <button type="button" id="clearedits">reset projections</button>
+    <div class="err" id="err"></div>
+  </form>
+{% endif %}
+
+  <div class="controls">
+    <button data-pos="ALL" class="on">All</button>
+    <button data-pos="QB">QB</button>
+    <button data-pos="RB">RB</button>
+    <button data-pos="WR">WR</button>
+    <button data-pos="TE">TE</button>
+    <button class="gemf" id="fgem">&#9670; Gems</button>
+    <button class="fadef" id="ffade">&#9660; Fades</button>
+    <button class="keptf" id="fkept">K Kept</button>
+    <input type="search" id="q" placeholder="search player&hellip;" autocomplete="off">
+    <label class="chk"><input type="checkbox" id="hide"> hide sold</label>
+    <label class="chk"><input type="checkbox" id="showall" checked> show $1</label>
+    <button id="reset">reset sold</button>
+    <span class="bait" id="bait"></span>
+  </div>
+
+  <table>
+    <thead><tr>
+      <th class="tagcol"></th>
+      <th class="l" data-k="pos">Pos</th>
+      <th data-k="tier">Tier</th>
+      <th class="l" data-k="name">Player</th>
+      <th class="l" data-k="team">Tm</th>
+      <th data-k="pts">Pts</th>
+      <th data-k="price">Value</th>
+    </tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+</div>
+
+<script>
+// Bootstrap payload is embedded for first paint in both modes. In server
+// mode the settings form re-fetches /api/board; in static mode there is
+// no server to ask, so the form is not rendered at all.
+let DATA = {{ bootstrap|safe }};
+const SERVER = {{ 'true' if server else 'false' }};
+const DEFAULTS = {{ defaults|safe }};
+
+const KEY = "sfl26.sold";
+const EDITS = "sfl26.projections";
+const TAGS = "sfl26.tags";
+const KEEP = "sfl26.keepers";
+
+// Sold marks are per-draft, so they stay in the browser. Tags and edited
+// projections are prep work that must outlive a cache clear, so on the
+// server they come from data/rankings.json and are written back on change.
+// The static sheet has nowhere to write, so it falls back to localStorage.
+let sold = new Set(JSON.parse(localStorage.getItem(KEY) || "[]"));
+let tags = {{ tags|safe }};
+let overrides = {{ projections|safe }};
+let keepers = {{ keepers|safe }};
+if (!SERVER){
+  tags = JSON.parse(localStorage.getItem(TAGS) || "{}");
+  overrides = JSON.parse(localStorage.getItem(EDITS) || "{}");
+  keepers = JSON.parse(localStorage.getItem(KEEP) || "{}");
+}
+let pos = "ALL", sortKey = "price", sortDir = -1, query = "", hideSold = false;
+let showFillers = true;   // the $1 tier — everyone at or below replacement
+let tagFilter = null;   // null | "gem" | "fade" | "kept"
+
+const id = p => p.pos + "|" + p.name;
+const $ = s => document.querySelector(s);
+
+function tally(shown){
+  $("#ct").textContent = shown + " players • " + sold.size + " sold";
+}
+
+// Persist one change. Resolves true on success. Never reports success it
+// did not get: a tag that looks saved and isn't is worse than no saving.
+async function persist(endpoint, body){
+  if (!SERVER){
+    localStorage.setItem(TAGS, JSON.stringify(tags));
+    localStorage.setItem(EDITS, JSON.stringify(overrides));
+    localStorage.setItem(KEEP, JSON.stringify(keepers));
+    return true;
+  }
+  try {
+    const res = await fetch("/api/rankings/" + endpoint, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(body)
+    });
+    const out = await res.json();
+    if (!res.ok){ $("#err").textContent = out.error || "could not save"; return false; }
+    $("#err").textContent = "";
+    return true;
+  } catch (err){
+    $("#err").textContent = "could not reach the server — change not saved";
+    return false;
+  }
+}
+
+// Bait is measured at market price, not our value: it is opponent money we
+// can drain by nominating players we don't want, and opponents bid the
+// market rather than our board.
+// Counts every tagged player whether or not the $1 tier is on screen —
+// hiding a row must not silently drop it from your gem and fade totals.
+function tagStats(){
+  let gems = 0, fades = 0, bait = 0;
+  for (const p of DATA.players.concat(DATA.fillers || [])){
+    const t = tags[id(p)];
+    if (t === "gem") gems++;
+    else if (t === "fade"){ fades++; bait += p.market; }
+  }
+  const kept = (DATA.keepers || []).length;
+  // Surplus is what the keeper rule is actually worth to you: board value
+  // minus what he costs. It is the number that decides whether a keeper
+  // slot is well spent.
+  let surplus = 0;
+  for (const p of DATA.keepers || []){
+    if (p.mine) surplus += p.price - p.cost;
+  }
+  return { gems, fades, bait, kept, surplus: Math.round(surplus) };
+}
+
+function paintTagControls(){
+  const s = tagStats();
+  $("#fgem").textContent = "◆ Gems" + (s.gems ? " " + s.gems : "");
+  $("#ffade").textContent = "▼ Fades" + (s.fades ? " " + s.fades : "");
+  $("#fkept").textContent = "K Kept" + (s.kept ? " " + s.kept : "");
+  $("#fgem").classList.toggle("on", tagFilter === "gem");
+  $("#ffade").classList.toggle("on", tagFilter === "fade");
+  $("#fkept").classList.toggle("on", tagFilter === "kept");
+
+  const bits = [];
+  if (s.fades) bits.push(s.fades + " fades · $" + s.bait + " of bait");
+  if (s.surplus) bits.push("keepers worth $" + s.surplus + " over cost");
+  const bad = (DATA.unmatchedKeepers || []);
+  if (bad.length) bits.push("⚠ no such player: " + bad.join(", "));
+  $("#bait").textContent = bits.join("  ·  ");
+  $("#bait").classList.toggle("warn", bad.length > 0);
+}
+
+function header(){
+  const L = DATA.league, you = DATA.you, inf = DATA.inflation;
+  $("#lg").textContent = L.season + " • " + L.describe;
+
+  const bar = $("#kb");
+  if (!inf || inf.multiplier === 1){
+    bar.textContent = "max opening bid $" + L.maxBid;
+    bar.classList.remove("hot");
+    return;
+  }
+
+  // Your keepers are already paid for, so the headline number is what is
+  // actually left to bid with — not the league budget.
+  const maxBid = you.budget - (you.spots - 1);
+  const pct = Math.round((inf.multiplier - 1) * 100);
+  bar.textContent =
+    "you: $" + you.budget + " for " + you.spots + " spots"
+    + " • max bid $" + maxBid
+    + " • prices +" + pct + "% ("
+    + inf.known + " keepers known, " + inf.assumed + " assumed)";
+  bar.classList.add("hot");
+}
+
+// Every player the board knows about. Fillers are a separate list in the
+// payload precisely so they can never leak into the pricing math; joining
+// them here is a display concern only.
+function pool(){
+  const fillers = DATA.fillers || [];
+  const kept = DATA.keepers || [];
+  // Kept players are never biddable, but they must stay visible and
+  // un-keepable — a keeper you cannot see is one you cannot correct.
+  const base = showFillers ? DATA.players.concat(fillers) : DATA.players;
+  return base.concat(kept);
+}
+
+function visible(){
+  let rows = pool().filter(p => pos === "ALL" || p.pos === pos);
+  if (tagFilter === "kept") rows = rows.filter(p => p.kept);
+  else if (tagFilter) rows = rows.filter(p => tags[id(p)] === tagFilter && !p.kept);
+  if (query) rows = rows.filter(p => p.name.toLowerCase().includes(query));
+  if (hideSold) rows = rows.filter(p => !sold.has(id(p)));
+  return rows.sort((a,b) => {
+    const x = a[sortKey], y = b[sortKey];
+    if (x === null) return 1;
+    if (y === null) return -1;
+    if (typeof x === "string") return sortDir * x.localeCompare(y);
+    return sortDir * (x - y);
+  });
+}
+
+// Reapply a single row's sold/gem/fade state without rebuilding the table.
+function restyle(tr, p){
+  const cls = [];
+  if (p.kept) cls.push("kept", p.mine ? "mine" : "theirs");
+  if (p.filler) cls.push("filler");
+  if (sold.has(id(p))) cls.push("sold");
+  if (tags[id(p)]) cls.push(tags[id(p)]);
+  tr.className = cls.join(" ");
+  tr.querySelectorAll(".tagbtn").forEach(b => {
+    const kind = b.classList.contains("gem") ? "gem" : "fade";
+    b.classList.toggle("on", tags[id(p)] === kind);
+  });
+}
+
+function draw(){
+  const rows = visible(), body = $("#rows");
+  body.innerHTML = "";
+  const frag = document.createDocumentFragment();
+
+  for (const p of rows){
+    const tr = document.createElement("tr");
+    const cls = [];
+    if (p.kept) cls.push("kept", p.mine ? "mine" : "theirs");
+    if (p.filler) cls.push("filler");
+    if (sold.has(id(p))) cls.push("sold");
+    if (tags[id(p)]) cls.push(tags[id(p)]);
+    tr.className = cls.join(" ");
+    // Toggle in place rather than redrawing. Destroying the clicked row
+    // inside its own handler is wasteful and a source of double-fire
+    // weirdness; a full redraw is only needed when sold rows must vanish.
+    tr.onclick = () => {
+      const k = id(p);
+      if (sold.has(k)) sold.delete(k); else sold.add(k);
+      localStorage.setItem(KEY, JSON.stringify([...sold]));
+      restyle(tr, p);
+      if (hideSold) draw(); else tally(rows.length);
+    };
+
+    const cell = (txt, cls) => {
+      const td = document.createElement("td");
+      if (cls) td.className = cls;
+      td.textContent = txt;
+      tr.appendChild(td);
+      return td;
+    };
+
+    // Gem / fade toggles. Mutually exclusive, and their clicks must not
+    // bubble — the row click marks a player sold.
+    const marks = document.createElement("td");
+    marks.className = "tags";
+    for (const kind of ["gem", "fade"]){
+      const btn = document.createElement("button");
+      btn.className = "tagbtn " + kind + (tags[id(p)] === kind ? " on" : "");
+      btn.textContent = kind === "gem" ? "◆" : "▼";
+      btn.title = kind === "gem"
+        ? "gem — expect him to beat this price"
+        : "fade — nominate him to drain someone else";
+      btn.onclick = async ev => {
+        ev.stopPropagation();
+        const k = id(p);
+        const was = tags[k] || null;
+        const next = was === kind ? null : kind;
+
+        // Show it immediately, then undo if the write failed.
+        if (next === null) delete tags[k]; else tags[k] = next;
+        restyle(tr, p);
+        paintTagControls();
+
+        const ok = await persist("tag", { key: k, tag: next });
+        if (!ok){
+          if (was === null) delete tags[k]; else tags[k] = was;
+          restyle(tr, p);
+          paintTagControls();
+          return;
+        }
+        if (tagFilter) draw();
+      };
+      marks.appendChild(btn);
+    }
+
+    // Keeper toggle. On a kept player it clears; otherwise it asks what
+    // was paid, since the cost is twice that and the board cannot guess.
+    if (SERVER){
+      const keep = document.createElement("button");
+      keep.className = "tagbtn keep" + (p.kept ? " on" : "");
+      keep.textContent = "K";
+      keep.title = p.kept
+        ? "kept at $" + p.cost + " — click to release"
+        : "mark as a keeper";
+      keep.onclick = ev => { ev.stopPropagation(); editKeeper(tr, p); };
+      marks.appendChild(keep);
+    }
+    tr.appendChild(marks);
+
+    const tagCell = document.createElement("td");
+    tagCell.className = "l";
+    const tag = document.createElement("span");
+    tag.className = "tag " + p.pos;
+    tag.textContent = p.pos + p.posRank;
+    tagCell.appendChild(tag);
+    tr.appendChild(tagCell);
+
+    // Below replacement there are no tiers to break on, so the cell is
+    // blank rather than inventing a number the projections cannot support.
+    cell(p.tier === null ? "" : p.tier, "tier");
+
+    const nameCell = document.createElement("td");
+    nameCell.className = "l";
+    const nm = document.createElement("span");
+    nm.className = "nm";
+    nm.textContent = p.name;
+    nameCell.appendChild(nm);
+    if (p.injury){
+      const flag = document.createElement("span");
+      flag.className = "inj";
+      flag.textContent = p.injury.toUpperCase().slice(0,4);
+      nameCell.appendChild(flag);
+    }
+    // One source means no second opinion — worth knowing before you bid.
+    if (p.sources < 2){
+      const solo = document.createElement("span");
+      solo.className = "solo";
+      solo.textContent = "1src";
+      solo.title = "projected by only one source";
+      nameCell.appendChild(solo);
+    }
+    tr.appendChild(nameCell);
+
+    cell(p.team, "l");
+
+    const pts = cell(p.pts.toFixed(1), p.edited ? "pts edited" : "pts");
+    if (SERVER){
+      pts.title = "click to edit this projection";
+      pts.onclick = ev => { ev.stopPropagation(); editPoints(pts, p); };
+    }
+
+    if (p.kept){
+      const val = cell("$" + p.cost, "val");
+      const was = document.createElement("span");
+      was.className = "kepttag";
+      was.textContent = "KEPT $" + p.paid + "→$" + p.cost;
+      was.title = "worth $" + p.price + " on this board";
+      val.appendChild(was);
+    } else {
+      cell("$" + p.price, "val");
+    }
+
+    frag.appendChild(tr);
+  }
+  body.appendChild(frag);
+  tally(rows.length);
+
+  document.querySelectorAll("th").forEach(th => {
+    th.className = th.className.replace(/\s*(asc|desc)/g, "");
+    if (th.dataset.k === sortKey) th.className += sortDir === 1 ? " asc" : " desc";
+  });
+}
+
+function paint(){ header(); paintTagControls(); draw(); }
+
+document.querySelectorAll("[data-pos]").forEach(b => b.onclick = () => {
+  pos = b.dataset.pos;
+  document.querySelectorAll("[data-pos]").forEach(x => x.classList.remove("on"));
+  b.classList.add("on");
+  draw();
+});
+
+// Selecting Fades sorts by value descending on purpose: your nomination
+// order is the most expensive player you don't want, thrown out first while
+// the room still has money.
+function setTagFilter(kind){
+  tagFilter = tagFilter === kind ? null : kind;
+  if (tagFilter === "fade"){ sortKey = "market"; sortDir = -1; }
+  paintTagControls();
+  draw();
+}
+$("#fgem").onclick = () => setTagFilter("gem");
+$("#ffade").onclick = () => setTagFilter("fade");
+$("#fkept").onclick = () => setTagFilter("kept");
+
+document.querySelectorAll("th").forEach(th => th.onclick = () => {
+  const k = th.dataset.k;
+  if (!k) return;                       // the tag column is not sortable
+  if (k === sortKey) sortDir *= -1;
+  else { sortKey = k; sortDir = ["name","team","pos","tier"].includes(k) ? 1 : -1; }
+  draw();
+});
+
+$("#q").oninput = e => { query = e.target.value.toLowerCase().trim(); draw(); };
+$("#hide").onchange = e => { hideSold = e.target.checked; draw(); };
+$("#showall").onchange = e => { showFillers = e.target.checked; draw(); };
+$("#reset").onclick = () => {
+  if (!confirm("Clear all " + sold.size + " sold marks?")) return;
+  sold = new Set();
+  localStorage.removeItem(KEY);
+  draw();
+};
+
+// Declared here so draw() can call it; only wired up in server mode.
+let reprice = () => {};
+let editPoints = () => {};
+let editKeeper = () => {};
+
+if (SERVER){
+  const FIELDS = ["teams","budget","spots","scoring","qb","rb","wr","te","flex","sf"];
+  const form = $("#settings");
+
+  const fill = src => FIELDS.forEach(f => { $("#" + f).value = src[f]; });
+
+  const settings = () => {
+    const out = {};
+    FIELDS.forEach(f => { out[f] = $("#" + f).value; });
+    return out;
+  };
+
+  const stickiness = () => Number($("#stick").value) / 100;
+
+  function showStick(){
+    const pct = Number($("#stick").value);
+    $("#sticklabel").textContent = pct + "% proj / " + (100 - pct) + "% mkt";
+  }
+
+  let timer = null, seq = 0;
+  reprice = async function(){
+    const mine = ++seq;
+    document.querySelector(".wrap").classList.add("busy");
+    try {
+      const res = await fetch("/api/board", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          settings: settings(),
+          overrides: overrides,
+          stickiness: stickiness()
+        })
+      });
+      const body = await res.json();
+      if (mine !== seq) return;               // a newer request already won
+      if (!res.ok){ $("#err").textContent = body.error || "invalid settings"; return; }
+      $("#err").textContent = "";
+      DATA = body;
+      paint();
+    } catch (err){
+      $("#err").textContent = "could not reach the server";
+    } finally {
+      if (mine === seq) document.querySelector(".wrap").classList.remove("busy");
+    }
+  };
+
+  // Turn a points cell into an input. Commit on Enter or blur, abandon on
+  // Escape. An empty value clears the override and restores the blend.
+  editPoints = function(cellEl, player){
+    if (cellEl.querySelector("input")) return;
+    const id = player.pos + "|" + player.name;
+    const before = cellEl.textContent;
+
+    cellEl.textContent = "";
+    const box = document.createElement("input");
+    box.type = "text";
+    box.value = overrides[id] !== undefined ? overrides[id] : player.pts.toFixed(1);
+    cellEl.appendChild(box);
+    box.focus();
+    box.select();
+
+    let done = false;
+    const finish = commit => {
+      if (done) return;
+      done = true;
+      if (!commit){ cellEl.textContent = before; return; }
+
+      const raw = box.value.trim();
+      const was = overrides[id];
+      let next = null;
+      if (raw !== ""){
+        const n = Number(raw);
+        if (!isFinite(n) || n < 0 || n > 1000){
+          $("#err").textContent = "projection must be a number between 0 and 1000";
+          cellEl.textContent = before;
+          return;
+        }
+        next = n;
+      }
+
+      if (next === null) delete overrides[id]; else overrides[id] = next;
+      cellEl.textContent = before;
+
+      persist("projection", { key: id, points: next }).then(ok => {
+        if (!ok){
+          if (was === undefined) delete overrides[id]; else overrides[id] = was;
+          return;
+        }
+        reprice();
+      });
+    };
+
+    box.onkeydown = e => {
+      if (e.key === "Enter"){ e.preventDefault(); finish(true); }
+      if (e.key === "Escape"){ e.preventDefault(); finish(false); }
+    };
+    box.onblur = () => finish(true);
+    box.onclick = e => e.stopPropagation();
+  };
+
+  // Marking a keeper re-prices the whole board, so it goes through the
+  // same save-then-reprice path as a projection edit — and reverts the
+  // same way if the write fails.
+  editKeeper = function(tr, player){
+    const key = player.pos + "|" + player.name;
+    const was = keepers[key];
+
+    const save = next => {
+      if (next === null) delete keepers[key]; else keepers[key] = next;
+      persist("keeper", {
+        key: key,
+        paid: next === null ? null : next.paid,
+        mine: next === null ? true : next.mine
+      }).then(ok => {
+        if (!ok){
+          if (was === undefined) delete keepers[key]; else keepers[key] = was;
+          return;
+        }
+        reprice();
+      });
+    };
+
+    if (player.kept){ save(null); return; }
+
+    const cellEl = tr.querySelector(".val");
+    if (cellEl.querySelector("input")) return;
+    const before = cellEl.textContent;
+    cellEl.textContent = "";
+
+    const box = document.createElement("input");
+    box.type = "text";
+    box.placeholder = "paid $";
+    cellEl.appendChild(box);
+    box.focus();
+
+    let done = false;
+    const finish = commit => {
+      if (done) return;
+      done = true;
+      cellEl.textContent = before;
+      if (!commit) return;
+
+      const raw = box.value.trim();
+      if (raw === "") return;
+      const n = Number(raw);
+      if (!isFinite(n) || n < 0 || n > 500){
+        $("#err").textContent = "keeper price must be a number between 0 and 500";
+        return;
+      }
+      // Shift-Enter records an opponent's keeper: it costs them, not you.
+      save({ paid: n, mine: !box.dataset.theirs });
+    };
+
+    box.onkeydown = e => {
+      if (e.key === "Enter"){
+        e.preventDefault();
+        if (e.shiftKey) box.dataset.theirs = "1";
+        finish(true);
+      }
+      if (e.key === "Escape"){ e.preventDefault(); finish(false); }
+    };
+    box.onblur = () => finish(true);
+    box.onclick = e => e.stopPropagation();
+  };
+
+  form.addEventListener("input", () => {
+    showStick();
+    clearTimeout(timer);
+    timer = setTimeout(reprice, 250);
+  });
+
+  $("#revert").onclick = () => {
+    fill(DEFAULTS);
+    $("#stick").value = Math.round((DATA.league.stickiness ?? 0.7) * 100);
+    showStick();
+    reprice();
+  };
+
+  $("#clearedits").onclick = async () => {
+    const n = Object.keys(overrides).length;
+    if (!n){ $("#err").textContent = "no edited projections"; return; }
+    if (!confirm("Discard " + n + " edited projection(s)?")) return;
+    const was = overrides;
+    overrides = {};
+    const ok = await persist("clear", { field: "projections" });
+    if (!ok){ overrides = was; return; }
+    reprice();
+  };
+
+  fill(DATA.league.params);
+  $("#stick").value = Math.round((DATA.league.stickiness ?? 0.7) * 100);
+  showStick();
+  if (Object.keys(overrides).length) reprice();
+}
+
+paint();
+</script>
+</body>
+</html>
